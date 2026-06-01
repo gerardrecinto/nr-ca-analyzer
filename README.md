@@ -5,7 +5,7 @@
 Python 3.11+ CLI for parsing and classifying 5G NR Carrier Aggregation events from field test logs. Rule-based classifier with 8 compiled NR5G regex patterns, streaming generator-based parser, stateful CA tracker, and three output reporters.
 
 ![Python](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python&logoColor=white)
-![Tests](https://img.shields.io/badge/Tests-25%20passed-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-30%20passed-brightgreen)
 ![License](https://img.shields.io/badge/License-MIT-lightgrey)
 ![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Linux-lightgrey)
 
@@ -164,6 +164,36 @@ See `fixtures/` for annotated sample logs covering a CA ramp-up and an RLF scena
 
 ---
 
+## Two Parser Implementations
+
+Both satisfy the `LogParser` Protocol and produce identical output.
+
+**`NR5GLogParser`** (`parser.py`): 8 module-level compiled `re.Pattern` constants. Fast on large files; patterns compiled once at import.
+
+**`NR5GStrParser`** (`parser_str.py`): no regex. Uses Python string methods only.
+
+```python
+from ca_analyzer.parser_str import NR5GStrParser
+
+entries = list(NR5GStrParser().parse(Path('fixtures/sample_events.log')))
+```
+
+String methods used in `parser_str.py`:
+
+| Task | Method |
+|---|---|
+| Event type detection | `'keyword' in line` |
+| Key=value extraction | `token.partition('=')` in `_kv()` |
+| Timestamp bounds | `line.find(']')` |
+| Subsystem bounds | `line.find('[NR5G-')`, `line.find(']', start)` |
+| CA state hex values | `rest.split()` then `int(parts[0], 16)` |
+| MeasReport event code | `line[mr_start:].split()[1].rstrip(':')` |
+| PDSCH CC bracket walk | `line.index('CC[')`, `line.index(']', s)`, `line.index('=', e)` |
+
+Cross-validated in `TestNR5GStrParser`: both parsers run against the same fixtures and compared event-by-event.
+
+---
+
 ## Python 3.11+ Concepts Demonstrated
 
 **`@dataclass(slots=True, frozen=True)` for immutable value objects**
@@ -182,11 +212,11 @@ See `fixtures/` for annotated sample logs covering a CA ramp-up and an RLF scena
 - 8 patterns compiled once at import time in `parser.py`; avoids per-line recompilation on multi-MB field logs
 
 **`Protocol` for structural subtyping**
-- `LogParser`: any class with `parse(path: Path) -> Iterator[LogEntry]` satisfies it without inheritance
-- `Reporter`: `TerminalReporter`, `JSONReporter`, `CSVReporter` are structurally compatible; no shared base class
+- `LogParser`: both `NR5GLogParser` and `NR5GStrParser` satisfy it without inheritance
+- `Reporter`: `TerminalReporter`, `JSONReporter`, `CSVReporter` are structurally compatible
 
 **Generator-based streaming**
-- `NR5GLogParser.parse()` yields `LogEntry` objects one at a time; classifier consumes the iterator without loading the full log into memory
+- Both parsers yield `LogEntry` objects one at a time via `Iterator[LogEntry]`; no full-log load into memory
 
 **`from __future__ import annotations`**
 - All modules use deferred annotation evaluation; enables `CellRecord | None` and `tuple[CellRecord, ...]` syntax cleanly
