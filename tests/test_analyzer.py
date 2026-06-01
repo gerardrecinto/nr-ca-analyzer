@@ -2,6 +2,7 @@ import pytest
 from pathlib import Path
 from ca_analyzer.parser import NR5GLogParser
 from ca_analyzer.classifier import CAEventClassifier
+from ca_analyzer.stats import compute_stats
 
 FIXTURES = Path(__file__).parent.parent / 'fixtures'
 
@@ -136,3 +137,32 @@ class TestCAEventClassifier:
         events, _ = self._classify_file('sample_rlf.log')
         rlf = [e for e in events if e.kind == 'RLF']
         assert rlf[0].rlf_reason == 'T310_EXPIRY'
+
+
+class TestCAStats:
+    def _stats(self, filename: str):
+        parser = NR5GLogParser()
+        classifier = CAEventClassifier()
+        events = list(classifier.classify(parser.parse(FIXTURES / filename)))
+        return compute_stats(events)
+
+    def test_peak_cc(self):
+        stats = self._stats('sample_events.log')
+        assert stats.peak_cc == 3
+
+    def test_peak_throughput(self):
+        stats = self._stats('sample_events.log')
+        assert stats.peak_throughput_mbps == 1060
+
+    def test_rlf_count(self):
+        stats = self._stats('sample_rlf.log')
+        assert stats.rlf_count == 1
+
+    def test_band_combos_include_n77(self):
+        stats = self._stats('sample_events.log')
+        assert any('n77' in combo for combo in stats.band_combos)
+
+    def test_3cc_duration_positive(self):
+        stats = self._stats('sample_events.log')
+        assert 3 in stats.cc_duration
+        assert stats.cc_duration[3] > 0

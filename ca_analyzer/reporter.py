@@ -4,6 +4,7 @@ import sys
 import csv
 from typing import Iterable, Protocol, TextIO
 from .classifier import CAEvent, CAState
+from .stats import CAStats
 
 _RESET  = '\033[0m'
 _BOLD   = '\033[1m'
@@ -106,3 +107,34 @@ class CSVReporter:
         writer.writerow(['timestamp', 'kind', 'cc_count', 'throughput_mbps', 'rlf_reason', 'details'])
         for e in events:
             writer.writerow([e.timestamp, e.kind, e.cc_count, e.throughput_mbps, e.rlf_reason, e.details])
+
+
+class StatsReporter:
+    def report(self, stats: CAStats, out: TextIO = sys.stdout) -> None:
+        bar = '-' * 40
+        print(bar, file=out)
+        print('CA Efficiency Report', file=out)
+        print(bar, file=out)
+        minutes = int(stats.total_seconds // 60)
+        secs = stats.total_seconds % 60
+        print(f'Duration:  {minutes}m {secs:.1f}s', file=out)
+        print(file=out)
+        print('CC breakdown:', file=out)
+        for cc in sorted(stats.cc_duration):
+            dur = stats.cc_duration[cc]
+            pct = stats.cc_pct(cc)
+            print(f'  {cc}CC  {dur:.1f}s  ({pct:.1f}%)', file=out)
+        if stats.band_combos:
+            print(file=out)
+            print('Band combinations:', file=out)
+            for combo, dur in sorted(stats.band_combos.items(), key=lambda x: -x[1]):
+                pct = dur / stats.total_seconds * 100 if stats.total_seconds else 0.0
+                print(f'  {combo:<20}  {dur:.1f}s  ({pct:.1f}%)', file=out)
+        print(file=out)
+        print(f'Peak CCs:        {stats.peak_cc}', file=out)
+        print(f'Peak throughput: {stats.peak_throughput_mbps} Mbps', file=out)
+        if stats.throughput_samples:
+            avg = sum(stats.throughput_samples) // len(stats.throughput_samples)
+            print(f'Avg throughput:  {avg} Mbps', file=out)
+        print(f'RLF events:      {stats.rlf_count}', file=out)
+        print(bar, file=out)
