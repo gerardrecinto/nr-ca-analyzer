@@ -1,0 +1,12 @@
+# RLF scenario: 3-CC active, degrading RSRP, SCells deactivated, T310 expiry, reestablishment
+
+[09:19:50.001] [NR5G-RRC] PCell ESTABLISH: band=n77 pci=456 arfcn=646666 rsrp=-85 rsrq=-10
+[09:19:50.005] [NR5G-MAC] SCell ADD: band=n78 pci=789 arfcn=632628 rsrp=-88 rsrq=-11
+[09:19:50.010] [NR5G-MAC] SCell ADD: band=n41 pci=127 arfcn=523020 rsrp=-90 rsrq=-12
+[09:20:15.001] [NR5G-PHY] PDSCH Throughput: CC[PCell-n77]=320 CC[SCell0-n78]=280 CC[SCell1-n41]=180 total=780 Mbps
+[09:20:22.334] [NR5G-PHY] PDSCH Throughput: CC[PCell-n77]=120 CC[SCell0-n78]=95 CC[SCell1-n41]=40 total=255 Mbps
+[09:20:25.112] [NR5G-RRC] MeasReport A3: serving_rsrp=-112 neighbor_rsrp=-108 band=n77 pci=234 arfcn=640002
+[09:20:26.445] [NR5G-MAC] SCell DEACT: band=n78 pci=789 arfcn=632628 reason=WEAK_SIGNAL rsrp=-118
+[09:20:26.448] [NR5G-MAC] SCell DEACT: band=n41 pci=127 arfcn=523020 reason=WEAK_SIGNAL rsrp=-121
+[09:20:27.003] [NR5G-RRC] RLF: cell=n77 pci=456 arfcn=646666 reason=T310_EXPIRY rlf_cause=BEAM_FAILURE
+[09:20:28.112] [NR5G-RRC] PCell ESTABLISH: band=n77 pci=234 arfcn=640002 rsrp=-108 rsrq=-14

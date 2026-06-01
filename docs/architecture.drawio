@@ -1,0 +1,49 @@
+<mxfile>
+  <diagram name="Architecture" id="nr-ca-analyzer-arch">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="2" value="5G NR field log&#xa;(QCAT / modem debug)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="430" y="40" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="3" value="NR5GLogParser&#xa;(LogParser Protocol)&#xa;8 compiled NR5G regex patterns&#xa;Streaming generator" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="380" y="160" width="300" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="4" value="CAEventClassifier&#xa;match/case dispatch&#xa;CAState: pcell &amp;#183; scells &amp;#183; peak_cc &amp;#183; rlf_count&#xa;CAEvent: frozen dataclass" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="380" y="300" width="300" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="5" value="Reporter Protocol&#xa;TerminalReporter &amp;#183; JSONReporter &amp;#183; CSVReporter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="380" y="440" width="300" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="6" value="Terminal&#xa;(ANSI)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="250" y="560" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="7" value="JSON&#xa;(stdout)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="470" y="560" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="8" value="CSV&#xa;(file / pipe)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="690" y="560" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="9" edge="1" source="2" target="3" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="10" value="Iterator[LogEntry]" edge="1" source="3" target="4" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="11" value="Iterator[CAEvent]" edge="1" source="4" target="5" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="12" edge="1" source="5" target="6" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="13" edge="1" source="5" target="7" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="14" edge="1" source="5" target="8" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
