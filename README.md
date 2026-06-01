@@ -2,10 +2,10 @@
 
 > From raw 5G NR field logs to carrier aggregation timeline in under a second.
 
-Python 3.11+ CLI for parsing and classifying 5G NR Carrier Aggregation events from field test logs. Rule-based classifier with 8 compiled NR5G regex patterns, streaming generator-based parser, stateful CA tracker, and three output reporters. Built as a hands-on study companion for the Qualcomm Academy 5G NR CA Log Analysis Workshop (June 2, 2026).
+Python 3.11+ CLI for parsing and classifying 5G NR Carrier Aggregation events from field test logs. Rule-based classifier with 8 compiled NR5G regex patterns, streaming generator-based parser, stateful CA tracker, and three output reporters.
 
 ![Python](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python&logoColor=white)
-![Tests](https://img.shields.io/badge/Tests-20%20passed-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-25%20passed-brightgreen)
 ![License](https://img.shields.io/badge/License-MIT-lightgrey)
 ![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Linux-lightgrey)
 
@@ -13,7 +13,7 @@ Python 3.11+ CLI for parsing and classifying 5G NR Carrier Aggregation events fr
 
 ## What it looks like in practice
 
-Terminal output (default):
+Terminal output:
 
 ```
 $ nr-ca-analyzer analyze fixtures/sample_events.log
@@ -61,6 +61,34 @@ $ nr-ca-analyzer analyze fixtures/sample_rlf.log --format json
 }
 ```
 
+CA efficiency stats:
+
+```
+$ nr-ca-analyzer stats fixtures/sample_events.log
+
+----------------------------------------
+CA Efficiency Report
+----------------------------------------
+Duration:  2m 40.6s
+
+CC breakdown:
+  1CC  36.7s  (22.9%)
+  2CC  98.3s  (61.2%)
+  3CC  25.6s  (15.9%)
+
+Band combinations:
+  n77+n78              59.1s  (36.8%)
+  n77+n41              39.1s  (24.4%)
+  n77                  36.7s  (22.9%)
+  n77+n78+n41          25.6s  (15.9%)
+
+Peak CCs:        3
+Peak throughput: 1060 Mbps
+Avg throughput:  860 Mbps
+RLF events:      0
+----------------------------------------
+```
+
 ---
 
 ## Architecture
@@ -75,32 +103,29 @@ $ nr-ca-analyzer analyze fixtures/sample_rlf.log --format json
 │                    nr-ca-analyzer                        │
 │                                                          │
 │  ┌──────────────────────────────────────────────────┐   │
-│  │           NR5GLogParser  (LogParser Protocol)     │   │
-│  │  8 compiled NR5G regex patterns                  │   │
-│  │  Streaming line-by-line via generator            │   │
-│  │  LogEntry: timestamp · subsystem · event_type    │   │
+│  │     NR5GLogParser (LogParser Protocol)             │   │
+│  │     8 compiled NR5G regex patterns                │   │
+│  │     Streaming line-by-line via generator          │   │
 │  └────────────────────┬─────────────────────────────┘   │
 │                       │ Iterator[LogEntry]               │
 │                       ▼                                  │
 │  ┌──────────────────────────────────────────────────┐   │
-│  │         CAEventClassifier                        │   │
-│  │  match/case dispatch across 8 event kinds        │   │
-│  │  CAState: pcell · scells · peak_cc · rlf_count   │   │
-│  │  CAEvent: frozen dataclass per classified event  │   │
+│  │     CAEventClassifier                             │   │
+│  │     match/case dispatch, 8 event kinds            │   │
+│  │     CAState: pcell, scells, peak_cc, rlf_count    │   │
 │  └────────────────────┬─────────────────────────────┘   │
 │                       │ Iterator[CAEvent]                │
 │                       ▼                                  │
 │  ┌──────────────────────────────────────────────────┐   │
-│  │           Reporter  (Protocol)                   │   │
-│  │  TerminalReporter  — ANSI color, summary footer  │   │
-│  │  JSONReporter      — events + summary dict       │   │
-│  │  CSVReporter       — spreadsheet-friendly rows   │   │
+│  │     Reporter Protocol                             │   │
+│  │     TerminalReporter: ANSI color, summary footer  │   │
+│  │     JSONReporter: events + summary dict           │   │
+│  │     CSVReporter: spreadsheet rows                 │   │
 │  └────────────────────┬─────────────────────────────┘   │
 │                       │                                  │
 │         ┌─────────────┼─────────┬────────┐           │
 │         ▼             ▼          ▼                    │
 │      Terminal        JSON        CSV                     │
-│      (ANSI)       (stdout)   (file / pipe)               │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -135,34 +160,36 @@ The parser expects newline-delimited text in this structure (QCAT-compatible):
 | `NR5G-MAC` | Medium Access Control (SCell add/deact, CA state bitmap) |
 | `NR5G-PHY` | Physical layer (PDSCH throughput, SINR samples) |
 
-See `fixtures/` for annotated sample logs covering a normal CA ramp-up and an RLF scenario.
+See `fixtures/` for annotated sample logs covering a CA ramp-up and an RLF scenario.
 
 ---
 
 ## Python 3.11+ Concepts Demonstrated
 
 **`@dataclass(slots=True, frozen=True)` for immutable value objects**
-- `CellRecord` — PCI, ARFCN, RSRP, RSRQ per cell; hashable, used in `tuple[CellRecord, ...]` snapshots on `CAEvent`
-- `CAEvent` — per-event immutable record; `scells: tuple[CellRecord, ...]` guarantees no mutation after classification
+- `CellRecord`: PCI, ARFCN, RSRP, RSRQ per cell; hashable, used in `tuple[CellRecord, ...]` snapshots on `CAEvent`
+- `CAEvent`: per-event immutable record; `scells: tuple[CellRecord, ...]` guarantees no mutation after classification
 
 **`@dataclass(slots=True)` for mutable running state**
-- `CAState` — tracks live pcell, scells list, peak_cc, peak_throughput, rlf_count across the log stream; `slots=True` reduces overhead on large logs
+- `CAState`: tracks live pcell, scells list, peak_cc, peak_throughput, rlf_count across the log stream
+- `CAStats`: per-run efficiency stats (cc_duration, band_combos, throughput samples)
 
 **`match/case` for event dispatch**
-- `CAEventClassifier._dispatch()` — matches on `event_type` string; each arm calls a dedicated `_handle_*` method; `case _: return None` for unknown events without an elif chain
+- `CAEventClassifier._dispatch()`: matches on `event_type` string; each arm calls a dedicated `_handle_*` method
+- `cli.main()`: dispatches analyze vs stats subcommand
 
 **Module-level compiled `re.Pattern` constants**
-- 8 patterns compiled once at import time in `parser.py`; avoids per-line regex compilation on multi-MB field logs
+- 8 patterns compiled once at import time in `parser.py`; avoids per-line recompilation on multi-MB field logs
 
 **`Protocol` for structural subtyping**
-- `LogParser` — any class with `parse(path: Path) -> Iterator[LogEntry]` satisfies it without inheritance
-- `Reporter` — `TerminalReporter`, `JSONReporter`, `CSVReporter` are structurally compatible; no shared base class
+- `LogParser`: any class with `parse(path: Path) -> Iterator[LogEntry]` satisfies it without inheritance
+- `Reporter`: `TerminalReporter`, `JSONReporter`, `CSVReporter` are structurally compatible; no shared base class
 
 **Generator-based streaming**
 - `NR5GLogParser.parse()` yields `LogEntry` objects one at a time; classifier consumes the iterator without loading the full log into memory
 
 **`from __future__ import annotations`**
-- All modules use deferred annotation evaluation; enables `CellRecord | None` and `tuple[CellRecord, ...]` syntax cleanly on Python 3.11
+- All modules use deferred annotation evaluation; enables `CellRecord | None` and `tuple[CellRecord, ...]` syntax cleanly
 
 ---
 
@@ -203,7 +230,9 @@ pipeline {
                 sh '''
                     python -m ca_analyzer.cli analyze fixtures/sample_events.log
                     python -m ca_analyzer.cli analyze fixtures/sample_rlf.log --format json | python -m json.tool
+                    python -m ca_analyzer.cli stats fixtures/sample_events.log
                     python -m ca_analyzer.cli analyze fixtures/sample_events.log --filter-kind SCEL_ADD,RLF
+                    python -m ca_analyzer.cli analyze fixtures/sample_events.log --band n41
                 '''
             }
         }
@@ -244,8 +273,17 @@ nr-ca-analyzer analyze path/to/nr5g.log --format csv > ca_events.csv
 # Hide throughput lines
 nr-ca-analyzer analyze path/to/nr5g.log --no-throughput
 
-# Filter to specific event kinds
+# Filter by event kind
 nr-ca-analyzer analyze path/to/nr5g.log --filter-kind SCEL_ADD,SCEL_DEACT,RLF
+
+# Filter by NR band
+nr-ca-analyzer analyze path/to/nr5g.log --band n41,n78
+
+# Time window
+nr-ca-analyzer analyze path/to/nr5g.log --since 09:16:00 --until 09:18:00
+
+# CA efficiency stats
+nr-ca-analyzer stats path/to/nr5g.log
 ```
 
 ---
@@ -259,6 +297,12 @@ python -m pytest tests/ --tb=short
 
 ---
 
+## CodeRabbit
+
+`.coderabbit.yaml` is included. Install the [CodeRabbit GitHub App](https://github.com/apps/coderabbit-ai) on this repo and it will auto-review any PR against `main`.
+
+---
+
 ## Workshop Context
 
-Built as a study companion for the **Qualcomm Academy 5G NR Carrier Aggregation Log Analysis Workshop** (June 2, 2026 — instructed by Joakim Hulten). The fixture logs and event taxonomy mirror patterns covered in the workshop: SCell add/deact MAC CE procedures, A3/B1 measurement reports, CA state bitmap transitions, and RLF root cause classification (T310 expiry, beam failure, SCG failure).
+Workshop companion for Qualcomm Academy 5G NR CA Log Analysis, June 2 2026 (Joakim Hulten). Fixture logs cover SCell MAC CE procedures, A3/B1 measurement reports, CA state bitmap transitions, RLF root cause (T310 expiry, beam failure).
