@@ -1,0 +1,4 @@
+include CHANGELOG.md
+include Jenkinsfile
+recursive-include fixtures *.log
+recursive-include docs *.drawio
