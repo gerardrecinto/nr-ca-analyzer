@@ -1,6 +1,6 @@
 # nr-ca-analyzer
 
-> From raw 5G NR field logs to carrier aggregation timeline in under a second.
+> The NR 5G CA analyzer helps turn raw modem logs into evidence about user experience, network quality, and carrier aggregation performance.
 
 Python 3.11+ CLI for parsing and classifying 5G NR Carrier Aggregation events from field test logs. Rule-based classifier with 8 compiled NR5G regex patterns, streaming generator-based parser, stateful CA tracker, and three output reporters.
 
