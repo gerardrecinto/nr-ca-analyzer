@@ -302,7 +302,3 @@ python -m pytest tests/ --tb=short
 `.coderabbit.yaml` is included. Install the [CodeRabbit GitHub App](https://github.com/apps/coderabbit-ai) on this repo and it will auto-review any PR against `main`.
 
 ---
-
-## Workshop Context
-
-Workshop companion for Qualcomm Academy 5G NR CA Log Analysis, June 2 2026 (Joakim Hulten). Fixture logs cover SCell MAC CE procedures, A3/B1 measurement reports, CA state bitmap transitions, RLF root cause (T310 expiry, beam failure).
