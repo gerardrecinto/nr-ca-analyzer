@@ -1,5 +1,5 @@
-# 5G NR Carrier Aggregation -- field test log excerpt
-# Device: UE-01, Location: San Diego CA
+# 5G NR Carrier Aggregation: synthetic diagnostic log excerpt
+# Environment: Simulated lab scenario
 # NR bands: n77 (PCell 3.7GHz), n41 (SCell0 2.5GHz), n78 (SCell1 3.5GHz)
 
 [09:15:30.001] [NR5G-RRC] PCell ESTABLISH: band=n77 pci=456 arfcn=646666 rsrp=-82 rsrq=-9

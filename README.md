@@ -2,7 +2,7 @@
 
 > The NR 5G CA analyzer helps turn raw modem logs into evidence about user experience, network quality, and carrier aggregation performance.
 
-Python 3.11+ CLI for parsing and classifying 5G NR Carrier Aggregation events from field test logs. Rule-based classifier with 8 compiled NR5G regex patterns, streaming generator-based parser, stateful CA tracker, and three output reporters.
+Python 3.11+ CLI for parsing and classifying 5G NR Carrier Aggregation events from simulated diagnostic logs. Rule-based classifier with 8 compiled NR5G regex patterns, streaming generator-based parser, stateful CA tracker, and three output reporters.
 
 ![Python](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python&logoColor=white)
 ![Tests](https://img.shields.io/badge/Tests-25%20passed-brightgreen)
@@ -96,7 +96,7 @@ RLF events:      0
 > Open `docs/architecture.drawio` in [diagrams.net](https://diagrams.net) for the interactive diagram.
 
 ```
-5G NR field log (QCAT / modem debug / custom)
+5G NR diagnostic log
             │
             ▼
 ┌─────────────────────────────────────────────────────────┐
@@ -148,7 +148,7 @@ RLF events:      0
 
 ## Log Format
 
-The parser expects newline-delimited text in this structure (QCAT-compatible):
+The parser expects newline-delimited text in this generic diagnostic structure:
 
 ```
 [HH:MM:SS.mmm] [NR5G-SUBSYS] <event text>
@@ -160,7 +160,7 @@ The parser expects newline-delimited text in this structure (QCAT-compatible):
 | `NR5G-MAC` | Medium Access Control (SCell add/deact, CA state bitmap) |
 | `NR5G-PHY` | Physical layer (PDSCH throughput, SINR samples) |
 
-See `fixtures/` for annotated sample logs covering a CA ramp-up and an RLF scenario.
+See `fixtures/` for annotated sample logs covering a CA ramp-up and an RLF scenario. All fixture logs are synthetic examples created for this project; they are not captured field logs, customer data, or internal system output.
 
 ---
 

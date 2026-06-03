@@ -4,7 +4,7 @@
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="2" value="5G NR field log&#xa;(QCAT / modem debug)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+        <mxCell id="2" value="5G NR diagnostic log&#xa;(simulated input)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
           <mxGeometry x="430" y="40" width="200" height="60" as="geometry" />
         </mxCell>
         <mxCell id="3" value="NR5GLogParser&#xa;(LogParser Protocol)&#xa;8 compiled NR5G regex patterns&#xa;Streaming generator" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">

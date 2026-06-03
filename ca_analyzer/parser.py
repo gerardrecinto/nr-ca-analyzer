@@ -114,7 +114,7 @@ def _classify_and_extract(line: str) -> tuple[str, dict[str, Any]] | None:
 
 
 class NR5GLogParser:
-    """Parses NR5G field test logs into structured LogEntry objects."""
+    """Parses NR5G diagnostic logs into structured LogEntry objects."""
 
     def parse(self, path: Path) -> Iterator[LogEntry]:
         with path.open() as fh:
