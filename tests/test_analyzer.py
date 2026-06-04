@@ -1,6 +1,7 @@
 import pytest
 from pathlib import Path
 from ca_analyzer.parser import NR5GLogParser
+from ca_analyzer.parser_str import NR5GStrParser
 from ca_analyzer.classifier import CAEventClassifier
 from ca_analyzer.stats import compute_stats
 
@@ -75,6 +76,41 @@ class TestNR5GLogParser:
         assert 'NR5G-MAC' in subsystems
         assert 'NR5G-RRC' in subsystems
         assert 'NR5G-PHY' in subsystems
+
+
+class TestNR5GStrParser:
+    def setup_method(self):
+        self.parser = NR5GStrParser()
+
+    def test_same_event_count_as_regex(self):
+        regex_entries = list(NR5GLogParser().parse(FIXTURES / 'sample_events.log'))
+        str_entries = list(NR5GStrParser().parse(FIXTURES / 'sample_events.log'))
+        assert len(regex_entries) == len(str_entries)
+
+    def test_same_event_types_and_timestamps(self):
+        regex_entries = list(NR5GLogParser().parse(FIXTURES / 'sample_events.log'))
+        str_entries = list(NR5GStrParser().parse(FIXTURES / 'sample_events.log'))
+        for r, s in zip(regex_entries, str_entries):
+            assert r.event_type == s.event_type
+            assert r.timestamp == s.timestamp
+            assert r.subsystem == s.subsystem
+
+    def test_pcell_fields(self):
+        entries = list(self.parser.parse(FIXTURES / 'sample_events.log'))
+        pcell = next(e for e in entries if e.event_type == 'PCELL_ESTABLISH')
+        assert pcell.fields['band'] == 'n77'
+        assert pcell.fields['rsrp'] == -82
+
+    def test_rlf_fields(self):
+        entries = list(self.parser.parse(FIXTURES / 'sample_rlf.log'))
+        rlf = next(e for e in entries if e.event_type == 'RLF')
+        assert rlf.fields['reason'] == 'T310_EXPIRY'
+        assert rlf.fields['rlf_cause'] == 'BEAM_FAILURE'
+
+    def test_pdsch_total(self):
+        entries = list(self.parser.parse(FIXTURES / 'sample_events.log'))
+        tput = [e for e in entries if e.event_type == 'PDSCH_THROUGHPUT']
+        assert tput[2].fields['total_mbps'] == 1060
 
 
 class TestCAEventClassifier:
