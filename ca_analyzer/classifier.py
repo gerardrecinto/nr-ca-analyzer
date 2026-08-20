@@ -71,6 +71,10 @@ class CAEventClassifier:
                 return self._handle_rlf(e)
             case 'PDSCH_THROUGHPUT':
                 return self._handle_throughput(e)
+            case 'MEAS_REPORT':
+                return self._handle_meas_report(e)
+            case 'REESTABLISHMENT':
+                return self._handle_reestablishment(e)
             case _:
                 return None
 
@@ -158,6 +162,33 @@ class CAEventClassifier:
                 + (f" cause={cause}" if cause else '')
             ),
             rlf_reason=f['reason'],
+        )
+
+    def _handle_meas_report(self, e: LogEntry) -> CAEvent:
+        f = e.fields
+        return CAEvent(
+            timestamp=e.timestamp,
+            kind='MEAS_REPORT',
+            pcell=self._state.pcell,
+            scells=self._state.snapshot_scells(),
+            cc_count=self._state.cc_count,
+            details=(
+                f"MeasReport {f['event']}: serving={f['serving_rsrp']} dBm"
+                f" neighbor={f['neighbor_rsrp']} dBm ({f['band']} PCI={f['pci']})"
+            ),
+        )
+
+    def _handle_reestablishment(self, e: LogEntry) -> CAEvent:
+        f = e.fields
+        return CAEvent(
+            timestamp=e.timestamp,
+            kind='REESTABLISHMENT',
+            pcell=self._state.pcell,
+            scells=self._state.snapshot_scells(),
+            cc_count=self._state.cc_count,
+            details=(
+                f"Reestablishment attempt: target={f['target_cell']} PCI={f['pci']}"
+            ),
         )
 
     def _handle_throughput(self, e: LogEntry) -> CAEvent:
