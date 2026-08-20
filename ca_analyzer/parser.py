@@ -14,7 +14,7 @@ _SCEL_DEACT = re.compile(
     r'(?:\s+rsrp=(-?\d+))?'
 )
 _SCEL_ACT = re.compile(r'SCell ACT: band=(\w+) pci=(\d+) arfcn=(\d+)')
-_CA_STATE = re.compile(r'CA State: (0x[\da-f]+) -> (0x[\da-f]+)')
+_CA_STATE = re.compile(r'CA State: (0x[\da-fA-F]+) -> (0x[\da-fA-F]+)')
 _PCELL    = re.compile(
     r'PCell ESTABLISH: band=(\w+) pci=(\d+) arfcn=(\d+) rsrp=(-?\d+) rsrq=(-?\d+)'
 )
