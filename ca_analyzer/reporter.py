@@ -22,6 +22,7 @@ _KIND_COLOR = {
     'RLF':             _RED,
     'THROUGHPUT':      _DIM,
     'REESTABLISHMENT': _YELLOW,
+    'MEAS_REPORT':     _GREEN,
 }
 
 
