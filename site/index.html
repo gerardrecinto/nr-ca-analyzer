@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nr-ca-analyzer: read a 5G carrier aggregation log</title>
+<meta name="description" content="Paste a simulated NR5G diagnostic log and see carrier aggregation events, a CC timeline, RLF markers and CA efficiency stats. The real parser runs in your browser.">
+<meta property="og:title" content="nr-ca-analyzer">
+<meta property="og:description" content="Paste a simulated NR5G diagnostic log and see carrier aggregation events, a CC timeline, RLF markers and CA efficiency stats. The real parser runs in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2306b6d4'/%3E%3Ccircle cx='16' cy='16' r='6' fill='none' stroke='%23fff' stroke-width='3'/%3E%3C/svg%3E">
+<style>
+
+:root{--bg:#f8fafc;--panel:#fff;--panel2:#f1f5f9;--line:#e2e8f0;--fg:#0f172a;--mute:#475569;--brand:#0e7490;--brand-bg:#cffafe;--ok:#047857;--ok-bg:#d1fae5;--err:#b91c1c;--err-bg:#fee2e2;--code:#0b1220;--code-fg:#e2e8f0}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#070d1a;--panel:#0d1526;--panel2:#111c33;--line:#1e2b47;--fg:#e8eefc;--mute:#9fb0cc;--brand:#22d3ee;--brand-bg:#08333d;--ok:#34d399;--ok-bg:#06382b;--err:#fca5a5;--err-bg:#3b1212}}
+:root[data-theme=dark]{--bg:#070d1a;--panel:#0d1526;--panel2:#111c33;--line:#1e2b47;--fg:#e8eefc;--mute:#9fb0cc;--brand:#22d3ee;--brand-bg:#08333d;--ok:#34d399;--ok-bg:#06382b;--err:#fca5a5;--err-bg:#3b1212}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--brand)}
+code,pre,textarea,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.wrap{max-width:1080px;margin:0 auto;padding:0 16px}
+nav{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;align-items:center;justify-content:space-between;height:56px;gap:12px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:700;color:var(--fg);text-decoration:none}
+.logo i{width:22px;height:22px;border-radius:6px;background:#06b6d4;display:inline-block}
+nav .links{display:flex;gap:18px;align-items:center;font-size:14px}
+nav .links a{color:var(--mute);text-decoration:none}
+nav .links a:hover{color:var(--fg)}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:10px;font-weight:600;text-decoration:none;border:1px solid var(--line);color:var(--fg);background:var(--panel);cursor:pointer;font-size:15px}
+.btn.primary{background:#06b6d4;border-color:#06b6d4;color:#032a33}
+.btn.primary:hover{background:#22d3ee}
+.btn:focus-visible,textarea:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid #06b6d4;outline-offset:2px}
+.hero{padding:72px 0 40px;text-align:center}
+.pill{display:inline-block;font-size:13px;color:var(--brand);background:var(--brand-bg);padding:4px 12px;border-radius:99px;margin-bottom:20px;font-weight:600}
+h1{font-size:clamp(34px,6vw,58px);line-height:1.08;margin:0 0 18px;letter-spacing:-.02em}
+h1 em{font-style:normal;color:var(--brand)}
+.lede{max-width:700px;margin:0 auto 28px;color:var(--mute);font-size:18px}
+.cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.stats{display:flex;gap:28px;justify-content:center;flex-wrap:wrap;margin-top:36px;color:var(--mute);font-size:14px}
+.stats b{display:block;color:var(--fg);font-size:22px}
+section{padding:56px 0}
+h2{font-size:clamp(26px,4vw,36px);margin:0 0 8px;letter-spacing:-.01em}
+.sub{color:var(--mute);margin:0 0 28px;max-width:720px}
+.lab{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+@media (max-width:860px){.lab{grid-template-columns:minmax(0,1fr)}nav .links .hide-s{display:none}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;min-width:0}
+.card h3{margin:0;padding:12px 16px;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.tools{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font:600 12px system-ui;padding:5px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--fg);cursor:pointer;text-transform:none;letter-spacing:0}
+.chip[aria-pressed=true]{background:var(--brand-bg);border-color:var(--brand);color:var(--brand)}
+#log{display:block;width:100%;height:420px;border:0;padding:12px 14px;font-size:12.5px;line-height:1.55;background:var(--code);color:var(--code-fg);resize:vertical;white-space:pre;overflow:auto}
+.src{display:flex;gap:8px;align-items:center;padding:10px 14px;border-top:1px solid var(--line);font-size:13px;color:var(--mute);flex-wrap:wrap}
+.out{min-height:420px}
+.status{padding:16px;color:var(--mute);font-size:14px}
+.verdict{padding:18px 16px;border-bottom:1px solid var(--line);background:var(--err-bg)}
+.verdict.unknown{background:var(--panel2)}
+.verdict b{display:block;font-size:20px;text-transform:uppercase;letter-spacing:.04em;color:var(--err)}
+.verdict.unknown b{color:var(--mute)}
+.verdict span{font-size:14px;color:var(--mute)}
+.sec{padding:14px 16px;border-bottom:1px solid var(--line)}
+.sec:last-child{border-bottom:0}
+.sec h4{margin:0 0 8px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+.bar{height:10px;border-radius:99px;background:var(--panel2);overflow:hidden;max-width:260px;display:inline-block;vertical-align:middle;margin-right:10px;width:60%}
+.bar i{display:block;height:100%;background:#06b6d4}
+.site{padding:8px 0;border-bottom:1px dashed var(--line);font-size:13.5px}
+.site:last-child{border:0}
+.site code{background:var(--panel2);padding:1px 6px;border-radius:5px;font-size:12px}
+.fix{background:var(--ok-bg);color:var(--ok);padding:10px 12px;border-radius:8px;font-size:14px}
+.note{font-size:13px;color:var(--mute);margin-top:12px}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media (max-width:860px){.steps{grid-template-columns:minmax(0,1fr)}}
+.step{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px}
+.step .n{width:28px;height:28px;border-radius:8px;background:var(--brand-bg);color:var(--brand);display:grid;place-items:center;font-weight:700;margin-bottom:10px}
+.step h3{margin:0 0 6px;font-size:17px}
+.step p{margin:0;color:var(--mute);font-size:15px}
+.tw{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow-x:auto;max-width:100%}
+table{width:100%;min-width:560px;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);background:var(--panel2)}
+tr:last-child td{border-bottom:0}
+td:first-child{font-family:ui-monospace,monospace;font-weight:700;white-space:nowrap}
+.install pre{background:var(--code);color:var(--code-fg);padding:16px;border-radius:12px;overflow-x:auto;font-size:13.5px;margin:0 0 12px}
+.cols2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+@media (max-width:860px){.cols2{grid-template-columns:minmax(0,1fr)}}
+.limits{background:var(--panel);border:1px solid var(--line);border-left:4px solid #f59e0b;border-radius:10px;padding:16px 20px}
+.limits ul{margin:8px 0 0;padding-left:20px;color:var(--mute)}
+footer{border-top:1px solid var(--line);padding:32px 0;color:var(--mute);font-size:14px}
+footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.out{min-height:420px;max-height:560px;overflow:auto}
+.ev{display:grid;grid-template-columns:auto auto 1fr;gap:4px 10px;padding:8px 14px;border-bottom:1px solid var(--line);font-size:13px;align-items:baseline}
+.ev:last-child{border:0}
+.ev .ts{font:600 12px ui-monospace,monospace;color:var(--mute)}
+.k{font:700 10.5px ui-monospace,monospace;padding:2px 7px;border-radius:6px;background:var(--panel2);color:var(--mute);white-space:nowrap}
+.k.PCELL_ESTABLISH,.k.CA_STATE_CHANGE{background:var(--brand-bg);color:var(--brand)}
+.k.SCEL_ADD,.k.MEAS_REPORT{background:var(--ok-bg);color:var(--ok)}
+.k.SCEL_DEACT,.k.REESTABLISHMENT{background:#fef3c7;color:#92400e}
+.k.RLF{background:var(--err-bg);color:var(--err)}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .k.SCEL_DEACT,:root:not([data-theme=light]) .k.REESTABLISHMENT{background:#3a2a07;color:#fcd34d}}
+.ev .d{grid-column:1/-1;color:var(--fg);overflow-wrap:anywhere}
+.sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.sum div{background:var(--panel2);border-radius:10px;padding:8px 10px;font-size:12px;color:var(--mute)}
+.sum b{display:block;font-size:20px;color:var(--fg)}
+pre.raw{margin:0;padding:12px 16px;font-size:12px;line-height:1.55;white-space:pre-wrap;word-break:break-word}
+svg.chart{display:block;width:100%;height:auto;color:var(--mute)}
+.bars .row{display:flex;align-items:center;gap:10px;padding:4px 0;font-size:13px}
+.bars .row span.l{width:130px;flex:none;font-family:ui-monospace,monospace;overflow-wrap:anywhere}
+.bars .row i{display:block;height:10px;border-radius:99px;background:var(--brand)}
+#log{display:block;width:100%;height:430px;border:0;padding:12px 14px;font-size:12px;line-height:1.55;background:var(--code);color:var(--code-fg);resize:vertical;white-space:pre;overflow:auto}
+</style>
+</head>
+<body>
+<nav><div class="wrap">
+  <a class="logo" href="#top"><i></i>nr-ca-analyzer</a>
+  <div class="links"><a href="#try" class="hide-s">Try it</a><a href="#install" class="hide-s">Install</a><a class="btn" href="https://github.com/gerardrecinto/nr-ca-analyzer">GitHub</a></div>
+</div></nav>
+
+<header class="hero" id="top"><div class="wrap">
+  <h1>See which carriers were up, and <em>when the link dropped</em>.</h1>
+  <p class="lede">A Python CLI that turns 5G NR diagnostic logs into evidence: which cells were aggregated, how throughput moved, and when a radio link failed. Streaming parser, stateful tracker, terminal, JSON and CSV output.</p>
+  <div class="cta"><a class="btn primary" href="#try">Analyze a log</a><a class="btn" href="#install">Run it locally</a></div>
+  <div class="stats"><div><b>8</b>event kinds parsed</div><div><b>3</b>output formats</div><div><b>0</b>uploads from this page</div></div>
+</div></header>
+
+
+<section id="try"><div class="wrap">
+  <h2>Paste a modem log, see the carrier aggregation story</h2>
+  <p class="sub">The real parser, event classifier and stats code run in your browser. The two sample logs are the simulated lab excerpts shipped in the repo, not captures from a real network. Edit them or paste your own in the same format.</p>
+  <div class="lab">
+    <div class="card">
+      <h3><span>diagnostic.log</span><span class="tools" role="group" aria-label="Sample logs"><button class="chip" data-s="events" aria-pressed="true">CA build-up</button><button class="chip" data-s="rlf" aria-pressed="false">Radio link failure</button></span></h3>
+      <label class="sr" for="log">NR5G diagnostic log</label>
+      <textarea id="log" spellcheck="false" wrap="off"></textarea>
+    </div>
+    <div class="card">
+      <h3><span>Analysis</span><span class="tools tabs" role="group" aria-label="View">
+        <button class="chip" data-v="timeline" aria-pressed="true">Timeline</button>
+        <button class="chip" data-v="stats" aria-pressed="false">CA stats</button>
+        <button class="chip" data-v="json" aria-pressed="false">JSON</button>
+        <button class="chip" data-v="csv" aria-pressed="false">CSV</button></span></h3>
+      <div id="sum" class="sum" hidden></div>
+      <div class="out" id="out" aria-live="polite"><div class="status" id="boot">Loading the analyzer (about 10 MB the first time, cached after)...</div></div>
+    </div>
+  </div>
+  <p class="note">Lines the parser does not recognise are skipped, as the CLI does. Duration and per-band time are computed between event timestamps, so a log with few events gives coarse numbers.</p>
+</div></section>
+
+<section><div class="wrap">
+  <h2>How it works</h2>
+  <p class="sub">A streaming parser feeds a stateful tracker. The tracker always knows which cells are up.</p>
+  <div class="steps">
+    <div class="step"><div class="n">1</div><h3>Parse as a stream</h3><p>Compiled regexes turn each log line into a typed entry: cell add and deactivate, CA state change, measurement report, throughput, RLF and re-establishment. Lines are read one at a time.</p></div>
+    <div class="step"><div class="n">2</div><h3>Track CA state</h3><p>The classifier keeps the primary cell and secondary cells as events arrive, so every event carries the component carrier count at that moment.</p></div>
+    <div class="step"><div class="n">3</div><h3>Report three ways</h3><p>A terminal view, JSON and CSV for pipelines, and a CA efficiency report with time per carrier count and per band combination.</p></div>
+  </div>
+</div></section>
+
+<section id="install" class="install"><div class="wrap">
+  <h2>Run it on your own logs</h2>
+  <p class="sub">Python 3.11 or later. Standard library only.</p>
+  <div class="cols2">
+    <div>
+<pre>pip install git+https://github.com/gerardrecinto/nr-ca-analyzer
+
+nr-ca-analyzer analyze fixtures/sample_events.log
+nr-ca-analyzer analyze fixtures/sample_rlf.log --format json
+nr-ca-analyzer stats fixtures/sample_events.log</pre>
+    </div>
+    <div>
+<pre>nr-ca-analyzer analyze log.txt --band n41,n78
+nr-ca-analyzer analyze log.txt --filter-kind SCEL_ADD,RLF
+nr-ca-analyzer analyze log.txt --since 09:15:30 --until 09:16:45</pre>
+      <p class="note">The analyzer filters by band, event kind and time window, and writes CSV for spreadsheets.</p>
+    </div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <div class="limits">
+    <strong>What this does not do</strong>
+    <ul>
+      <li>It reads a text format the repo defines for simulated diagnostic logs. It does not decode a vendor's binary modem trace.</li>
+      <li>The sample logs are lab-style examples, so the numbers describe those examples, not any real network.</li>
+      <li>It reports what happened in a log. It does not tune a network or diagnose a root cause for you.</li>
+    </ul>
+  </div>
+</div></section>
+
+
+<footer><div class="wrap">
+  <span>nr-ca-analyzer. MIT licensed. Built by <a href="https://github.com/gerardrecinto">Gerard Recinto</a>.</span>
+  <span><a href="https://github.com/gerardrecinto/nr-ca-analyzer">Source</a> &middot; <a href="https://github.com/gerardrecinto/nr-ca-analyzer/releases">Releases</a></span>
+</div></footer>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+<script>
+
+(() => {
+  const FILES = ["__init__.py", "parser.py", "parser_str.py", "classifier.py", "reporter.py", "stats.py"];
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const SAMPLES = {};
+  let py = null, view = "timeline", last = null, timer = null;
+  const track = (n) => { try { if (window.plausible) window.plausible(n); } catch (e) {} };
+  const PY = `
+import io, json
+from pathlib import Path
+from ca_analyzer.parser import NR5GLogParser
+from ca_analyzer.classifier import CAEventClassifier
+from ca_analyzer.reporter import JSONReporter, CSVReporter, StatsReporter
+from ca_analyzer.stats import compute_stats
+def run(text):
+    p = Path("/work/log.txt"); p.parent.mkdir(exist_ok=True); p.write_text(text)
+    clf = CAEventClassifier()
+    events = list(clf.classify(NR5GLogParser().parse(p)))
+    j = io.StringIO(); JSONReporter().report(events, clf.state, j)
+    c = io.StringIO(); CSVReporter().report(events, clf.state, c)
+    s = compute_stats(events); st = io.StringIO(); StatsReporter().report(s, st)
+    return json.dumps({"json": j.getvalue(), "csv": c.getvalue(), "stats_text": st.getvalue(), "n": len(events),
+        "stats": {"total": s.total_seconds, "cc": {str(k): v for k, v in s.cc_duration.items()}, "combos": s.band_combos}})
+`;
+  function tsSec(t) { const [h, m, r] = t.split(":"); return +h * 3600 + +m * 60 + parseFloat(r); }
+  function chart(events) {
+    const pts = events.filter((e) => e.kind !== "THROUGHPUT" || true);
+    if (pts.length < 2) return "";
+    const W = 440, H = 130, P = 28, t0 = tsSec(pts[0].timestamp), t1 = tsSec(pts[pts.length - 1].timestamp) || t0 + 1;
+    const span = Math.max(t1 - t0, 0.001), maxCC = Math.max(3, ...pts.map((e) => e.cc_count)), maxT = Math.max(1, ...pts.map((e) => e.throughput_mbps));
+    const x = (e) => P + ((tsSec(e.timestamp) - t0) / span) * (W - 2 * P), yc = (n) => H - P - (n / maxCC) * (H - P * 1.6);
+    let d = "", prev = null;
+    pts.forEach((e) => { const px = x(e), py2 = yc(e.cc_count); d += prev === null ? `M${px},${py2}` : `L${px},${yc(prev)}L${px},${py2}`; prev = e.cc_count; });
+    const bars = pts.filter((e) => e.throughput_mbps).map((e) => `<rect x="${x(e) - 2}" y="${H - P - (e.throughput_mbps / maxT) * 38}" width="4" height="${(e.throughput_mbps / maxT) * 38}" fill="#06b6d4" opacity=".45"/>`).join("");
+    const rlf = pts.filter((e) => e.kind === "RLF").map((e) => `<line x1="${x(e)}" x2="${x(e)}" y1="${P / 2}" y2="${H - P}" stroke="#ef4444" stroke-dasharray="3 3"/><text x="${x(e)}" y="${P / 2 - 2}" font-size="10" text-anchor="middle" fill="#ef4444">RLF</text>`).join("");
+    return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Component carrier count over time, with throughput bars and RLF markers">${bars}<path d="${d}" fill="none" stroke="#0e7490" stroke-width="2.5"/>${rlf}<text x="${P}" y="${H - 8}" font-size="10" fill="currentColor">${esc(pts[0].timestamp)}</text><text x="${W - P}" y="${H - 8}" font-size="10" text-anchor="end" fill="currentColor">${esc(pts[pts.length - 1].timestamp)}</text><text x="4" y="${yc(maxCC) + 3}" font-size="10" fill="currentColor">${maxCC}CC</text></svg>`;
+  }
+  function render() {
+    const out = $("out");
+    if (!last) return;
+    if (last.error) { $("sum").hidden = true; out.innerHTML = `<div class="status" style="color:var(--err)">${esc(last.error)}</div>`; return; }
+    const j = JSON.parse(last.json), s = j.summary;
+    $("sum").hidden = false;
+    $("sum").innerHTML = `<div><b>${s.peak_cc}</b>peak carriers</div><div><b>${s.peak_throughput_mbps}</b>peak Mbps</div><div><b>${s.rlf_count}</b>RLF events</div><div><b>${esc(s.final_pcell_band || "none")}</b>final PCell band</div>`;
+    if (!last.n) { out.innerHTML = '<div class="status">No recognised events. Each line needs a [hh:mm:ss.mmm] timestamp, an [NR5G-...] tag and a known event.</div>'; return; }
+    if (view === "timeline") {
+      out.innerHTML = `<div class="sec" style="padding:10px 14px;border-bottom:1px solid var(--line)">${chart(j.events)}</div>` + j.events.map((e) => `<div class="ev"><span class="ts">${esc(e.timestamp)}</span><span class="k ${e.kind}">${esc(e.kind)}</span><span class="ts">${e.cc_count}CC</span><span class="d">${esc(e.details)}</span></div>`).join("");
+    } else if (view === "stats") {
+      const st = last.stats, tot = st.total || 1;
+      const bars = (o) => Object.entries(o).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<div class="row"><span class="l">${esc(k.match(/^\d+$/) ? k + "CC" : k)}</span><i style="width:${Math.max(2, (v / tot) * 100)}%"></i><span>${v.toFixed(1)}s</span></div>`).join("");
+      out.innerHTML = `<div class="sec bars"><h4>Time per carrier count</h4>${bars(st.cc)}</div><div class="sec bars"><h4>Time per band combination</h4>${bars(st.combos) || "none"}</div><pre class="raw">${esc(last.stats_text)}</pre>`;
+    } else out.innerHTML = `<pre class="raw">${esc(view === "json" ? last.json : last.csv)}</pre>`;
+  }
+  function lint() {
+    if (!py) return;
+    try { py.globals.set("_t", $("log").value); last = JSON.parse(py.runPython("run(_t)")); }
+    catch (e) { last = { error: "Could not analyze this log: " + String(e.message || e).trim().split("\n").pop() }; }
+    render();
+  }
+  document.querySelectorAll("[data-v]").forEach((b) => b.addEventListener("click", () => { view = b.dataset.v; document.querySelectorAll("[data-v]").forEach((x) => x.setAttribute("aria-pressed", x === b)); render(); track("nr_view_" + view); }));
+  document.querySelectorAll("[data-s]").forEach((b) => b.addEventListener("click", () => { $("log").value = SAMPLES[b.dataset.s]; document.querySelectorAll("[data-s]").forEach((x) => x.setAttribute("aria-pressed", x === b)); lint(); track("nr_sample_" + b.dataset.s); }));
+  $("log").addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(lint, 250); });
+  Promise.all(["sample_events", "sample_rlf"].map((n) => fetch("logs/" + n + ".log").then((r) => r.text()))).then(([a, b]) => { SAMPLES.events = a; SAMPLES.rlf = b; $("log").value = a; if (py) lint(); }).catch(() => { $("log").value = "could not load the sample logs"; });
+  (async () => {
+    try {
+      py = await loadPyodide();
+      py.FS.mkdirTree("/lib/ca_analyzer");
+      await Promise.all(FILES.map(async (f) => { const r = await fetch("py/" + f); if (!r.ok) throw new Error("could not load " + f); py.FS.writeFile("/lib/ca_analyzer/" + f, await r.text()); }));
+      py.runPython("import sys; sys.path.insert(0, '/lib')"); py.runPython(PY);
+      window.__NR_READY__ = true; lint();
+    } catch (e) { $("boot").textContent = "The in-browser analyzer did not load (" + String(e.message || e).split("\n").pop() + "). The CLI install below gives the same result."; }
+  })();
+})();
+
+</script>
+</body>
+</html>
